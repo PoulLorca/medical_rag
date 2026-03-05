@@ -88,18 +88,18 @@
                   <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-6xl animate-pulse">
                     🧠
                   </div>
-                  <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32">
-                    <div class="absolute animate-spin" style="animation-duration: 3s;">
-                      <span class="absolute -top-4 left-1/2 -translate-x-1/2 text-2xl">📄</span>
+                  <div class="absolute inset-0 pointer-events-none">
+                    <div class="absolute inset-0 flex items-center justify-center animate-spin" style="animation-duration: 3s;">
+                      <span class="text-2xl -translate-y-14">📄</span>
                     </div>
-                    <div class="absolute animate-spin" style="animation-duration: 4s; animation-direction: reverse;">
-                      <span class="absolute -bottom-4 left-1/2 -translate-x-1/2 text-2xl">📚</span>
+                    <div class="absolute inset-0 flex items-center justify-center animate-spin" style="animation-duration: 4s; animation-direction: reverse;">
+                      <span class="text-2xl translate-y-14">📚</span>
                     </div>
-                    <div class="absolute animate-spin" style="animation-duration: 5s;">
-                      <span class="absolute top-1/2 -right-4 -translate-y-1/2 text-2xl">🔬</span>
+                    <div class="absolute inset-0 flex items-center justify-center animate-spin" style="animation-duration: 5s;">
+                      <span class="text-2xl translate-x-14">🔬</span>
                     </div>
-                    <div class="absolute animate-spin" style="animation-duration: 3.5s; animation-direction: reverse;">
-                      <span class="absolute top-1/2 -left-4 -translate-y-1/2 text-2xl">💊</span>
+                    <div class="absolute inset-0 flex items-center justify-center animate-spin" style="animation-duration: 3.5s; animation-direction: reverse;">
+                      <span class="text-2xl -translate-x-14">💊</span>
                     </div>
                   </div>
                 </div>

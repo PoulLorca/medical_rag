@@ -1,5 +1,4 @@
-// @ts-ignore
-// Importación dinámica de pdf-parse
+import { PDFParse } from 'pdf-parse'
 import { z } from 'zod'
 import { requireAdmin } from '~~/server/utils/session'
 import { splitIntoChunks } from '~~/server/utils/chunking'
@@ -19,8 +18,14 @@ export default defineEventHandler(async (event) => {
   if (!fileField?.data) {
     throw createError({ statusCode: 400, message: 'Missing PDF file' })
   }
-  const pdfModule = await import('pdf-parse');
-  const pdfData = await pdfModule(fileField.data);
+
+  const parser = new PDFParse({ data: fileField.data })
+  const textResult = await parser.getText()
+  const pdfData = {
+    text: textResult.text,
+    numpages: textResult.total
+  }
+  await parser.destroy()
 
   const sql = useNeon()
 
