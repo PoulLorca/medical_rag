@@ -4,6 +4,8 @@ import { z } from 'zod'
 import { db, schema } from 'hub:db'
 import { and, eq } from 'drizzle-orm'
 import type { UIMessage } from 'ai'
+import { generateEmbeddings } from '~~/server/utils/embeddings'
+import { useNeon } from '~~/server/utils/neon'
 
 defineRouteMeta({
   openAPI: {
@@ -11,6 +13,44 @@ defineRouteMeta({
     tags: ['ai']
   }
 })
+
+function buildSystemPrompt(ragContext: string, username?: string): string {
+  const userGreeting = username ? `The user's name is ${username}.` : ''
+
+  const baseRules = `
+  **FORMATTING RULES (CRITICAL):**
+  - ABSOLUTELY NO MARKDOWN HEADINGS: Never use #, ##, ###, ####, #####, or ######
+  - NO underline-style headings with === or ---
+  - Use **bold text** for emphasis and section labels instead
+  - Start all responses with content, never with a heading
+
+  **RESPONSE QUALITY:**
+  - Be concise yet comprehensive
+  - Use examples when helpful
+  - Break down complex topics into digestible parts
+  - Maintain a friendly, professional tone`
+
+    if (ragContext) {
+      return `You are a technical assistant specialized in medical equipment documentation. ${userGreeting}
+
+  You have access to the following technical documentation fragments retrieved from equipment manuals:
+
+  ${ragContext}
+
+  **RAG RULES:**
+  - Answer ONLY based on the documentation context provided above
+  - If the information is NOT in the context, say so clearly — do not make up information
+  - Reference the fragment number when relevant (e.g. "According to Fragment 2...")
+  - Use appropriate technical language but keep explanations understandable
+  - If the user asks something unrelated to medical equipment, you can answer normally but note that your specialty is medical equipment documentation
+  ${baseRules}`
+    }
+
+    return `You are a knowledgeable and helpful AI assistant. ${userGreeting} Your goal is to provide clear, accurate, and well-structured responses.
+
+  When the user asks about medical equipment and no documentation context is available, let them know that no technical manuals have been uploaded yet and suggest they contact the administrator.
+  ${baseRules}`
+}
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -73,26 +113,50 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // --- RAG: Search relevant document chunks ---
+  let ragContext = ''
+
+  if (lastMessage?.role === 'user') {
+    try {
+      // Extract text from the last user message
+      const questionText = lastMessage.parts
+        ?.filter((p: any) => p.type === 'text')
+        .map((p: any) => p.text)
+        .join(' ') || ''
+
+      if (questionText.length > 5) {
+        const questionEmbedding = await generateEmbeddings(questionText)
+        const sql = useNeon()
+
+        const relevantChunks = await sql`
+          SELECT * FROM search_chunks(
+            ${JSON.stringify(questionEmbedding)}::vector,
+            5,
+            NULL,
+            0.7
+          )
+        `
+
+        if (relevantChunks.length > 0) {
+          ragContext = relevantChunks
+            .map((chunk: any, idx: number) =>
+              `[Fragment ${idx + 1} | Similarity: ${(chunk.similarity * 100).toFixed(0)}%]:\n${chunk.content}`
+            )
+            .join('\n\n---\n\n')
+        }
+      }
+    }
+    catch (error) {
+      console.error('RAG search failed, continuing without context:', error)
+      // Don't block the chat if RAG fails — just respond without context
+    }
+  }
+
   const stream = createUIMessageStream({
     execute: async ({ writer }) => {
       const result = streamText({
         model: openrouter(model),
-        system: `You are a knowledgeable and helpful AI assistant. ${session.user?.username ? `The user's name is ${session.user.username}.` : ''} Your goal is to provide clear, accurate, and well-structured responses.
-
-**FORMATTING RULES (CRITICAL):**
-- ABSOLUTELY NO MARKDOWN HEADINGS: Never use #, ##, ###, ####, #####, or ######
-- NO underline-style headings with === or ---
-- Use **bold text** for emphasis and section labels instead
-- Examples:
-  * Instead of "## Usage", write "**Usage:**" or just "Here's how to use it:"
-  * Instead of "# Complete Guide", write "**Complete Guide**" or start directly with content
-- Start all responses with content, never with a heading
-
-**RESPONSE QUALITY:**
-- Be concise yet comprehensive
-- Use examples when helpful
-- Break down complex topics into digestible parts
-- Maintain a friendly, professional tone`,
+        system: buildSystemPrompt(ragContext, session.user?.username),
         messages: await convertToModelMessages(messages),
         stopWhen: stepCountIs(5),
         experimental_transform: smoothStream({ chunking: 'word' }),

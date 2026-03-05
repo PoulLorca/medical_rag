@@ -32,7 +32,9 @@ export default defineNuxtConfig({
   compatibilityDate: '2024-07-11',
 
   runtimeConfig: {
-    openrouterApiKey: process.env.OPENROUTER_API_KEY
+    openrouterApiKey: process.env.OPENROUTER_API_KEY,
+    neonDatabaseUrl: process.env.NEON_DATABASE_URL,
+    setupSecret: process.env.SETUP_SECRET
   },
 
   nitro: {
