@@ -97,13 +97,9 @@ async function handleLogin() {
     })
 
     // Redirect based on role
-    const { user } = await $fetch('/api/auth/me')
-    if (user.role === 'admin') {
-      router.push('/admin')
-    }
-    else {
-      router.push('/')
-    }
+    const { user } = await $fetch('/api/auth/me')    
+    router.push('/')
+    
   }
   catch (e: any) {
     error.value = e.data?.statusMessage || 'Login failed. Please try again.'

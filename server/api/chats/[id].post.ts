@@ -18,38 +18,54 @@ function buildSystemPrompt(ragContext: string, username?: string): string {
   const userGreeting = username ? `The user's name is ${username}.` : ''
 
   const baseRules = `
-  **FORMATTING RULES (CRITICAL):**
-  - ABSOLUTELY NO MARKDOWN HEADINGS: Never use #, ##, ###, ####, #####, or ######
-  - NO underline-style headings with === or ---
-  - Use **bold text** for emphasis and section labels instead
-  - Start all responses with content, never with a heading
+**FORMATTING RULES (CRITICAL):**
+- ABSOLUTELY NO MARKDOWN HEADINGS: Never use #, ##, ###, ####, #####, or ######
+- NO underline-style headings with === or ---
+- Use **bold text** for emphasis and section labels instead
+- Start all responses with content, never with a heading
 
-  **RESPONSE QUALITY:**
-  - Be concise yet comprehensive
-  - Use examples when helpful
-  - Break down complex topics into digestible parts
-  - Maintain a friendly, professional tone`
+**RESPONSE QUALITY:**
+- Be concise yet comprehensive
+- Use examples when helpful
+- Break down complex topics into digestible parts
+- Maintain a friendly, professional tone`
 
-    if (ragContext) {
-      return `You are a technical assistant specialized in medical equipment documentation. ${userGreeting}
+  if (ragContext) {
+    return `You are MedDoc Assistant, a technical assistant specialized in pharmaceutical documentation. ${userGreeting}
 
-  You have access to the following technical documentation fragments retrieved from equipment manuals:
+You have access to the following documentation fragments retrieved from official drug datasheets:
 
-  ${ragContext}
+${ragContext}
 
-  **RAG RULES:**
-  - Answer ONLY based on the documentation context provided above
-  - If the information is NOT in the context, say so clearly — do not make up information
-  - Reference the fragment number when relevant (e.g. "According to Fragment 2...")
-  - Use appropriate technical language but keep explanations understandable
-  - If the user asks something unrelated to medical equipment, you can answer normally but note that your specialty is medical equipment documentation
-  ${baseRules}`
-    }
+**CRITICAL RAG RULES — YOU MUST FOLLOW THESE:**
+- Answer ONLY and EXCLUSIVELY based on the documentation context provided above
+- If the answer is NOT in the provided fragments, you MUST say: "I don't have documentation loaded for this topic. The administrator needs to upload the relevant datasheet so I can help you with this question."
+- NEVER use your own training knowledge to answer medical or pharmaceutical questions
+- NEVER make up, infer, or guess information that is not explicitly in the fragments
 
-    return `You are a knowledgeable and helpful AI assistant. ${userGreeting} Your goal is to provide clear, accurate, and well-structured responses.
+**CITATION RULES — THIS IS THE MOST IMPORTANT PART:**
+- You MUST cite the source document name and fragment number for EVERY claim you make
+- Use this format: (Source: "Document Name", Fragment X)
+- If information comes from multiple documents, cite each one separately
+- At the end of your response, include a **Sources:** section listing all documents referenced
+- Example: "Paracetamol should not exceed 4g daily in adults (Source: "Paracetamol Kern Pharma 1g", Fragment 2)."
 
-  When the user asks about medical equipment and no documentation context is available, let them know that no technical manuals have been uploaded yet and suggest they contact the administrator.
-  ${baseRules}`
+- Use appropriate technical language but keep explanations understandable
+- Always end with a reminder that this is informational only and does not replace professional medical advice
+${baseRules}`
+  }
+
+  return `You are MedDoc Assistant, a technical assistant specialized in pharmaceutical documentation. ${userGreeting}
+
+**CRITICAL: You have NO documentation loaded for the user's question.**
+
+You MUST respond with something like:
+"I don't have documentation loaded that covers this topic. I can only answer questions based on official drug datasheets that have been uploaded to my knowledge base. Please ask the administrator to upload the relevant documentation, or try asking about one of the medications I already have loaded."
+
+You MUST NOT answer medical or pharmaceutical questions from your own training knowledge. This is a RAG system — you only answer from uploaded documents.
+
+If the user asks a non-medical question (like a greeting, how you work, or what you can do), you can respond naturally and explain that you are a medical documentation assistant that answers based on uploaded drug datasheets.
+${baseRules}`
 }
 
 export default defineEventHandler(async (event) => {
@@ -118,7 +134,6 @@ export default defineEventHandler(async (event) => {
 
   if (lastMessage?.role === 'user') {
     try {
-      // Extract text from the last user message
       const questionText = lastMessage.parts
         ?.filter((p: any) => p.type === 'text')
         .map((p: any) => p.text)
@@ -129,18 +144,26 @@ export default defineEventHandler(async (event) => {
         const sql = useNeon()
 
         const relevantChunks = await sql`
-          SELECT * FROM search_chunks(
-            ${JSON.stringify(questionEmbedding)}::vector,
-            5,
-            NULL,
-            0.7
-          )
+          SELECT 
+            dc.id,
+            dc.document_id,
+            dc.content,
+            dc.page_number,
+            dc.chunk_index,
+            1 - (dc.embedding <=> ${JSON.stringify(questionEmbedding)}::vector) AS similarity,
+            d.name AS document_name,
+            d.equipment_type
+          FROM document_chunks dc
+          JOIN documents d ON d.id = dc.document_id
+          WHERE 1 - (dc.embedding <=> ${JSON.stringify(questionEmbedding)}::vector) >= 0.7
+          ORDER BY dc.embedding <=> ${JSON.stringify(questionEmbedding)}::vector
+          LIMIT 5
         `
 
         if (relevantChunks.length > 0) {
           ragContext = relevantChunks
             .map((chunk: any, idx: number) =>
-              `[Fragment ${idx + 1} | Similarity: ${(chunk.similarity * 100).toFixed(0)}%]:\n${chunk.content}`
+              `[Fragment ${idx + 1} | Source: "${chunk.document_name}" | Section/Chunk: ${chunk.chunk_index} | Page: ${chunk.page_number} | Similarity: ${(chunk.similarity * 100).toFixed(0)}%]:\n${chunk.content}`
             )
             .join('\n\n---\n\n')
         }
@@ -148,7 +171,6 @@ export default defineEventHandler(async (event) => {
     }
     catch (error) {
       console.error('RAG search failed, continuing without context:', error)
-      // Don't block the chat if RAG fails — just respond without context
     }
   }
 
