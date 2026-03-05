@@ -143,7 +143,7 @@ export default defineEventHandler(async (event) => {
         const questionEmbedding = await generateEmbeddings(questionText)
         const sql = useNeon()
 
-        const relevantChunks = await sql`
+        const retrievedChunks = await sql`
           SELECT 
             dc.id,
             dc.document_id,
@@ -155,13 +155,26 @@ export default defineEventHandler(async (event) => {
             d.equipment_type
           FROM document_chunks dc
           JOIN documents d ON d.id = dc.document_id
-          WHERE 1 - (dc.embedding <=> ${JSON.stringify(questionEmbedding)}::vector) >= 0.7
+          WHERE d.status = 'ready'
           ORDER BY dc.embedding <=> ${JSON.stringify(questionEmbedding)}::vector
-          LIMIT 5
+          LIMIT 12
         `
 
-        if (relevantChunks.length > 0) {
-          ragContext = relevantChunks
+        const relevantChunks = retrievedChunks.filter((chunk: any) => chunk.similarity >= 0.55)
+        const fallbackChunks = relevantChunks.length > 0
+          ? relevantChunks
+          : retrievedChunks.filter((chunk: any) => chunk.similarity >= 0.45).slice(0, 3)
+
+        /*  
+        console.log('[RAG] Retrieved chunks:', {
+          total: retrievedChunks.length,
+          selected: fallbackChunks.length,
+          bestSimilarity: retrievedChunks[0]?.similarity ?? null
+        })*/
+
+        if (fallbackChunks.length > 0) {
+          ragContext = fallbackChunks
+            .slice(0, 5)
             .map((chunk: any, idx: number) =>
               `[Fragment ${idx + 1} | Source: "${chunk.document_name}" | Section/Chunk: ${chunk.chunk_index} | Page: ${chunk.page_number} | Similarity: ${(chunk.similarity * 100).toFixed(0)}%]:\n${chunk.content}`
             )
