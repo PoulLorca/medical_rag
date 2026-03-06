@@ -34,7 +34,8 @@ export default defineNuxtConfig({
   runtimeConfig: {
     openrouterApiKey: process.env.OPENROUTER_API_KEY,
     neonDatabaseUrl: process.env.NEON_DATABASE_URL,
-    setupSecret: process.env.SETUP_SECRET
+    setupSecret: process.env.SETUP_SECRET,
+    voyageApiKey: process.env.VOYAGE_API_KEY
   },
 
   nitro: {

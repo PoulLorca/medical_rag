@@ -2,6 +2,7 @@ import { PDFParse } from 'pdf-parse'
 import { z } from 'zod'
 import { requireAdmin } from '~~/server/utils/session'
 import { splitIntoChunks } from '~~/server/utils/chunking'
+import { generateEmbeddingsWithRetry } from '~~/server/utils/embeddings'
 import { useNeon } from '~~/server/utils/neon'
 
 export default defineEventHandler(async (event) => {  
@@ -14,7 +15,7 @@ export default defineEventHandler(async (event) => {
 
   const fileField = formData.find(f => f.name === 'file')
   const nameField = formData.find(f => f.name === 'name')
-  const equipmentField = formData.find(f => f.name === 'equipment_type')
+  const vehicleModelField = formData.find(f => f.name === 'vehicle_model')
   if (!fileField?.data) {
     throw createError({ statusCode: 400, message: 'Missing PDF file' })
   }
@@ -40,10 +41,10 @@ export default defineEventHandler(async (event) => {
     // 2. Create document record (status: processing)
     console.log('💾 Creating document record...')
     const [document] = await sql`
-      INSERT INTO documents (name, equipment_type, file_name, total_pages, status, created_by)
+      INSERT INTO documents (name, vehicle_model, file_name, total_pages, status, created_by)
       VALUES (
         ${nameField?.data?.toString() || 'Unnamed'},
-        ${equipmentField?.data?.toString() || 'general'},
+        ${vehicleModelField?.data?.toString() || 'general'},
         ${fileField.filename || 'unknown.pdf'},
         ${pdfData.numpages},
         'processing',
@@ -63,16 +64,18 @@ export default defineEventHandler(async (event) => {
 
     // 4. Generate embeddings and save in batches
     console.log('🧠 Generating embeddings...')
-    const BATCH_SIZE = 10
+    const BATCH_SIZE = 4
+    const INTER_BATCH_DELAY_MS = 400
 
     try {
       for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
         const batch = chunks.slice(i, i + BATCH_SIZE)
 
-        // Generate embeddings in parallel within the batch
-        const embeddings = await Promise.all(
-          batch.map(chunk => generateEmbeddings(chunk.content))
-        )
+        // Generate embeddings sequentially to avoid provider 429 spikes
+        const embeddings: number[][] = []
+        for (const chunk of batch) {
+          embeddings.push(await generateEmbeddingsWithRetry(chunk.content))
+        }
 
         // Insert each chunk with its embedding
         for (let j = 0; j < batch.length; j++) {
@@ -92,6 +95,10 @@ export default defineEventHandler(async (event) => {
         }
 
         console.log(`   → Batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(chunks.length / BATCH_SIZE)} saved`)
+
+        if (i + BATCH_SIZE < chunks.length) {
+          await new Promise(resolve => setTimeout(resolve, INTER_BATCH_DELAY_MS))
+        }
       }
 
       // 5. Update status to ready

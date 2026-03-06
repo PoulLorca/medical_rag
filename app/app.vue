@@ -17,8 +17,8 @@ useHead({
   }
 })
 
-const title = 'MedDoc Assistant — Medical Documentation RAG'
-const description = 'AI-powered chatbot that answers questions from medical documentation. Upload drug leaflets and equipment manuals, then ask in natural language.'
+const title = 'TeslaDocs - Tesla Owner\'s Manual Assistant'
+const description = 'AI-powered chatbot that answers questions from official Tesla owner\'s manuals. Ask about your Model S, 3, X, Y, Cybertruck and more.'
 
 useSeoMeta({
   title,

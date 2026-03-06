@@ -103,9 +103,9 @@ defineShortcuts({
       class="border-r-0 py-4"
     >
       <template #header="{ collapsed }">
-        <NuxtLink to="/" class="flex items-end gap-1.5">
-          <span class="text-2xl shrink-0">🏥</span>
-          <span v-if="!collapsed" class="text-lg font-bold text-highlighted">MedDoc</span>
+        <NuxtLink to="/" class="flex items-center gap-2" :class="collapsed ? 'justify-center w-full' : ''">
+          <UIcon name="i-simple-icons-tesla" class="size-8 shrink-0 text-[#E31937]" />
+          <span v-if="!collapsed" class="text-lg font-bold text-highlighted">TeslaDocs</span>
         </NuxtLink>
 
         <div v-if="!collapsed" class="flex items-center gap-1.5 ms-auto">

@@ -46,28 +46,28 @@ async function onSubmit() {
 
 const quickChats = [
   {
-    label: 'How often can I take paracetamol?',
-    icon: 'i-lucide-pill'
+    label: 'How do I open the frunk on Model S?',
+    icon: 'i-lucide-car'
   },
   {
-    label: 'Can I mix ibuprofen with omeprazole?',
-    icon: 'i-lucide-flask-conical'
+    label: 'What is the recommended tire pressure?',
+    icon: 'i-lucide-circle-gauge'
   },
   {
-    label: 'Which antihistamine does not cause drowsiness?',
-    icon: 'i-lucide-moon'
+    label: 'How to use Autopilot safely?',
+    icon: 'i-lucide-loader-pinwheel'
   },
   {
-    label: 'What is the maximum daily dose of amoxicillin?',
-    icon: 'i-lucide-shield-check'
+    label: 'How do I set up a charging schedule?',
+    icon: 'i-lucide-battery-charging'
   },
   {
-    label: 'Can I take aspirin during pregnancy?',
-    icon: 'i-lucide-baby'
-  },
-  {
-    label: 'What are the side effects of metformin?',
+    label: 'What do the warning lights mean?',
     icon: 'i-lucide-alert-triangle'
+  },
+  {
+    label: 'How to pair my phone via Bluetooth?',
+    icon: 'i-lucide-bluetooth'
   }
 ]
 </script>
@@ -88,11 +88,12 @@ const quickChats = [
 
         <UContainer class="flex-1 flex flex-col justify-center gap-4 sm:gap-6 py-8">
           <div class="space-y-2">
-            <h1 class="text-3xl sm:text-4xl text-highlighted font-bold">
-              🏥 What would you like to know?
+            <h1 class="text-3xl sm:text-4xl text-highlighted font-bold flex items-center gap-3">
+              <UIcon name="i-simple-icons-tesla" class="size-9 shrink-0 text-[#E31937]" />
+              <span>What would you like to know about your Tesla?</span>
             </h1>
             <p class="text-base text-muted max-w-2xl">
-              Ask me about medications, dosages, side effects, drug interactions, or anything from the uploaded medical documentation. I answer based exclusively on official drug leaflets and technical datasheets.
+              Ask me about features, maintenance, charging, Autopilot, settings, or anything from the official Tesla owner's manuals. I answer based exclusively on uploaded documentation.
             </p>
           </div>
 
@@ -102,7 +103,7 @@ const quickChats = [
             :disabled="isUploading"
             class="[view-transition-name:chat-prompt]"
             variant="subtle"
-            placeholder="e.g. Can I take ibuprofen on an empty stomach?"
+            placeholder="e.g. How do I activate Sentry Mode?"
             :ui="{ base: 'px-1.5' }"
             @submit="onSubmit"
           >
@@ -154,17 +155,17 @@ const quickChats = [
           <!-- Info box -->
           <div class="bg-primary/5 border border-primary/20 rounded-lg p-4 max-w-2xl">
             <div class="flex gap-3">
-              <span class="text-xl shrink-0">💊</span>
+              <span class="text-xl shrink-0">⚡</span>
               <div class="text-sm text-muted space-y-1">
                 <p class="font-medium text-highlighted">How does this work?</p>
                 <p>
                   This chatbot uses RAG (Retrieval-Augmented Generation) to search through official
-                  medication datasheets and answer your questions with sourced information. It does not
+                  Tesla owner's manuals and answer your questions with sourced information. It does not
                   make up answers — if the information is not in the loaded documents, it will tell you.
                 </p>
                 <p class="text-xs text-dimmed">
-                  Currently loaded with drug leaflets from AEMPS (Spanish Agency of Medicines). This is a
-                  technical demo and should not replace professional medical advice.
+                  Currently loaded with official Tesla owner's manuals. This is a technical demo
+                  — always refer to your vehicle's official documentation for critical information.
                 </p>
               </div>
             </div>

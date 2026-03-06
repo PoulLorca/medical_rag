@@ -11,8 +11,8 @@
     <template #body>
       <UContainer class="flex-1 flex flex-col gap-6 py-8">
         <div class="space-y-1">
-          <h1 class="text-2xl font-bold text-highlighted">📋 Document Manager</h1>
-          <p class="text-sm text-muted">Upload and manage medication datasheets for the RAG knowledge base</p>
+          <h1 class="text-2xl font-bold text-highlighted">📋 Tesla Manual Manager</h1>
+          <p class="text-sm text-muted">Upload and manage Tesla owner's manual datasheets for the RAG knowledge base</p>
         </div>
 
         <!-- Upload Section -->
@@ -22,20 +22,20 @@
           </template>
 
           <form @submit.prevent="uploadFile" class="space-y-4">
-            <UFormField label="Medication / Document name *">
+            <UFormField label="Document name *">
               <UInput
                 class="w-full"
                 v-model="form.name"
-                placeholder="e.g. Paracetamol Kern Pharma 1g"
+                placeholder="e.g. MODEL Y Owners_Manual_2023"
                 :disabled="uploading"
               />
             </UFormField>
 
-            <UFormField label="Category">
+            <UFormField label="Tesla Model">
               <USelect
                 class="w-full"
-                v-model="form.equipmentType"
-                :items="equipmentTypes"
+                v-model="form.vehicleModel"
+                :items="vehicleModels"
                 :disabled="uploading"
               />
             </UFormField>
@@ -159,7 +159,7 @@
                   {{ doc.name }}
                 </p>
                 <div class="flex items-center gap-2 mt-0.5">
-                  <UBadge size="xs" variant="subtle">{{ doc.equipment_type }}</UBadge>
+                  <UBadge size="xs" variant="subtle">{{ doc.vehicle_model }}</UBadge>
                   <span class="text-xs text-dimmed">
                     {{ doc.total_chunks }} chunks · {{ doc.total_pages }} pages
                   </span>
@@ -228,19 +228,15 @@ const currentLearningMessage = ref(0)
 
 const form = reactive({
   name: '',
-  equipmentType: 'pain_fever'
+  vehicleModel: 'model_s'
 })
 
-const equipmentTypes = [
-  { label: 'Pain & Fever', value: 'pain_fever' },
-  { label: 'Stomach & Digestive', value: 'digestive' },
-  { label: 'Allergies', value: 'allergies' },
-  { label: 'Antibiotics', value: 'antibiotics' },
-  { label: 'Anxiety & Sleep', value: 'anxiety_sleep' },
-  { label: 'Cholesterol & Heart', value: 'cardiovascular' },
-  { label: 'Diabetes', value: 'diabetes' },
-  { label: 'Respiratory', value: 'respiratory' },
-  { label: 'Other', value: 'other' }
+const vehicleModels = [
+  { label: 'Model S', value: 'model_s' },
+  { label: 'Model 3', value: 'model_3' },
+  { label: 'Model X', value: 'model_x' },
+  { label: 'Model Y', value: 'model_y' },
+  { label: 'Cybertruck', value: 'cybertruck' },  
 ]
 
 const learningMessages = [
@@ -301,7 +297,7 @@ async function uploadFile() {
   const formData = new FormData()
   formData.append('file', selectedFile.value)
   formData.append('name', form.name)
-  formData.append('equipment_type', form.equipmentType)
+  formData.append('vehicle_model', form.vehicleModel)
 
   try {
     const result = await $fetch<{ document: { totalChunks: number, totalPages: number } }>('/api/admin/upload', {

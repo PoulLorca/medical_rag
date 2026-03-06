@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { db, schema } from 'hub:db'
 import { and, eq } from 'drizzle-orm'
 import type { UIMessage } from 'ai'
-import { generateEmbeddings } from '~~/server/utils/embeddings'
+import { generateQueryEmbeddings } from '~~/server/utils/embeddings'
 import { useNeon } from '~~/server/utils/neon'
 
 defineRouteMeta({
@@ -31,16 +31,16 @@ function buildSystemPrompt(ragContext: string, username?: string): string {
 - Maintain a friendly, professional tone`
 
   if (ragContext) {
-    return `You are MedDoc Assistant, a technical assistant specialized in pharmaceutical documentation. ${userGreeting}
+    return `You are TeslaDocs Assistant, a technical assistant specialized in Tesla vehicle owner's manuals. ${userGreeting}
 
-You have access to the following documentation fragments retrieved from official drug datasheets:
+You have access to the following documentation fragments retrieved from official Tesla owner's manuals:
 
 ${ragContext}
 
 **CRITICAL RAG RULES — YOU MUST FOLLOW THESE:**
 - Answer ONLY and EXCLUSIVELY based on the documentation context provided above
-- If the answer is NOT in the provided fragments, you MUST say: "I don't have documentation loaded for this topic. The administrator needs to upload the relevant datasheet so I can help you with this question."
-- NEVER use your own training knowledge to answer medical or pharmaceutical questions
+- If the answer is NOT in the provided fragments, you MUST say: "I don't have documentation loaded for this topic. The administrator needs to upload the relevant Tesla manual so I can help you with this question."
+- NEVER use your own training knowledge to answer Tesla-related questions
 - NEVER make up, infer, or guess information that is not explicitly in the fragments
 
 **CITATION RULES — THIS IS THE MOST IMPORTANT PART:**
@@ -48,23 +48,23 @@ ${ragContext}
 - Use this format: (Source: "Document Name", Fragment X)
 - If information comes from multiple documents, cite each one separately
 - At the end of your response, include a **Sources:** section listing all documents referenced
-- Example: "Paracetamol should not exceed 4g daily in adults (Source: "Paracetamol Kern Pharma 1g", Fragment 2)."
+- Example: "The Model S has a range of up to 405 miles (Source: "Tesla Model S Owner's Manual", Fragment 3)."
 
 - Use appropriate technical language but keep explanations understandable
-- Always end with a reminder that this is informational only and does not replace professional medical advice
+- When describing procedures (like how to open the frunk, charge, etc.), list the steps clearly
 ${baseRules}`
   }
 
-  return `You are MedDoc Assistant, a technical assistant specialized in pharmaceutical documentation. ${userGreeting}
+  return `You are TeslaDocs Assistant, a technical assistant specialized in Tesla vehicle owner's manuals. ${userGreeting}
 
 **CRITICAL: You have NO documentation loaded for the user's question.**
 
 You MUST respond with something like:
-"I don't have documentation loaded that covers this topic. I can only answer questions based on official drug datasheets that have been uploaded to my knowledge base. Please ask the administrator to upload the relevant documentation, or try asking about one of the medications I already have loaded."
+"I don't have documentation loaded that covers this topic. I can only answer questions based on official Tesla owner's manuals that have been uploaded to my knowledge base. Please ask the administrator to upload the relevant manual, or try asking about one of the Tesla models I already have loaded."
 
-You MUST NOT answer medical or pharmaceutical questions from your own training knowledge. This is a RAG system — you only answer from uploaded documents.
+You MUST NOT answer Tesla-related questions from your own training knowledge. This is a RAG system — you only answer from uploaded documents.
 
-If the user asks a non-medical question (like a greeting, how you work, or what you can do), you can respond naturally and explain that you are a medical documentation assistant that answers based on uploaded drug datasheets.
+If the user asks a non-Tesla question (like a greeting, how you work, or what you can do), you can respond naturally and explain that you are a Tesla documentation assistant that answers based on uploaded owner's manuals.
 ${baseRules}`
 }
 
@@ -140,7 +140,7 @@ export default defineEventHandler(async (event) => {
         .join(' ') || ''
 
       if (questionText.length > 5) {
-        const questionEmbedding = await generateEmbeddings(questionText)
+        const questionEmbedding = await generateQueryEmbeddings(questionText)
         const sql = useNeon()
 
         const retrievedChunks = await sql`
@@ -152,7 +152,7 @@ export default defineEventHandler(async (event) => {
             dc.chunk_index,
             1 - (dc.embedding <=> ${JSON.stringify(questionEmbedding)}::vector) AS similarity,
             d.name AS document_name,
-            d.equipment_type
+            d.vehicle_model
           FROM document_chunks dc
           JOIN documents d ON d.id = dc.document_id
           WHERE d.status = 'ready'

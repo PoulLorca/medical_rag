@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   const sql = useNeon()
 
   const documents = await sql`
-    SELECT id, name, equipment_type, file_name, total_chunks, total_pages, status, created_at
+    SELECT id, name, vehicle_model, file_name, total_chunks, total_pages, status, created_at
     FROM documents
     ORDER BY created_at DESC
   `

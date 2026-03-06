@@ -3,10 +3,10 @@
     <div class="w-full max-w-sm">
       <!-- Logo / Header -->
       <div class="text-center mb-8">
-        <div class="text-4xl mb-3">🏥</div>
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">MedDoc Assistant</h1>
+        <UIcon name="i-simple-icons-tesla" class="mx-auto mb-3 size-10 text-[#E31937]" />
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">TeslaDocs Assistant</h1>
         <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          AI assistant for consulting drug information
+          AI assistant for Tesla owner's manual consultation
         </p>
       </div>
 
